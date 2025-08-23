@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Manager : MonoBehaviour
+public class BarrierOpener : MonoBehaviour
 {
     [SerializeField] private InputHandler _inputHandler;
     [SerializeField] private Raycaster _raycaster;
