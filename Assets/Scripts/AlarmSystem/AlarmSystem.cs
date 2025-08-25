@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -5,13 +6,10 @@ using UnityEngine;
 public class AlarmSystem : MonoBehaviour
 {
     [SerializeField] private AlarmTrigger _trigger;
-    [SerializeField, Range(0, 1)] private float _increaseRate;
-    [SerializeField, Range(0, 1)] float _smoothness = 0.01f;
+    [SerializeField, Range(0, 1)] private float _volumeChangingSpeed = 0.016f;
+    [SerializeField, Range(0, 1)] float _smoothness = 0.4f;
 
     private AudioSource _audioSource;
-
-    private Coroutine _increaseVolumeCoroutine;
-    private Coroutine _decreaseVolumeCoroutine;
 
     private void Awake()
     {
@@ -21,61 +19,57 @@ public class AlarmSystem : MonoBehaviour
 
     private void OnEnable()
     {
-        _trigger.CrookEnteredHouse += StartSignaling;
-        _trigger.CrookLeftHouse += StopSignaling;
+        _trigger.CrookEnteredHouse += StartEnterCoroutine;
+        _trigger.CrookEnteredHouse += PlaySound;
+        _trigger.CrookLeftHouse += StartLeftCoroutine;
     }
 
     private void OnDisable()
     {
-        _trigger.CrookEnteredHouse -= StartSignaling;
-        _trigger.CrookLeftHouse -= StopSignaling;
+        _trigger.CrookEnteredHouse -= StartEnterCoroutine;
+        _trigger.CrookEnteredHouse -= PlaySound;
+        _trigger.CrookLeftHouse -= StartLeftCoroutine;
     }
 
-    private void StartSignaling()
+    private void Update()
     {
-        if (_decreaseVolumeCoroutine != null)
-        {
-            StopCoroutine(_decreaseVolumeCoroutine);
-            _decreaseVolumeCoroutine = null;
-        }
-
-        _increaseVolumeCoroutine = StartCoroutine(IncreaseCouroutine());
+        if (_audioSource.volume == 0)
+            _audioSource.Stop();
     }
 
-    private void StopSignaling()
+    private void PlaySound()
     {
-        if (_increaseVolumeCoroutine != null)
-        {
-            StopCoroutine(_increaseVolumeCoroutine);
-            _increaseVolumeCoroutine = null;
-        }
-
-        _increaseVolumeCoroutine = StartCoroutine(DecreaseCouroutine());
+        _audioSource.Play();
     }
 
-    private IEnumerator IncreaseCouroutine()
+    private void StartEnterCoroutine()
     {
-        _audioSource?.Play();
+        StopAllCoroutines();
 
-        var wait = new WaitForSeconds(_smoothness);
+        float offset = _volumeChangingSpeed;
+        float finalVolume = 1;
 
-        while (_audioSource.volume < 1)
-        {
-            _audioSource.volume += _increaseRate;
-            yield return wait;
-        }
+        StartCoroutine(ChangeVolumeCouroutine(offset, () => _audioSource.volume < finalVolume));
     }
 
-    private IEnumerator DecreaseCouroutine()
+    private void StartLeftCoroutine()
+    {
+        StopAllCoroutines();
+
+        float offset = _volumeChangingSpeed * -1;
+        float finalVolume = 0;
+
+        StartCoroutine(ChangeVolumeCouroutine(offset, () => _audioSource.volume > finalVolume));
+    }
+
+    private IEnumerator ChangeVolumeCouroutine(float offset, Func<bool> condition)
     {
         var wait = new WaitForSeconds(_smoothness);
 
-        while (_audioSource.volume > 0)
+        while (condition())
         {
-            _audioSource.volume -= _increaseRate;
+            _audioSource.volume += offset;
             yield return wait;
         }
-
-        _audioSource?.Stop();
     }
 }

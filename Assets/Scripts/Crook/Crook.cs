@@ -13,7 +13,6 @@ public class Crook : MonoBehaviour
     {
         _mover = GetComponent<Mover>();
         _waypoints = new Transform[_waypointsParent.childCount];
-        Debug.Log(_waypointsParent.childCount);
     }
 
     private void Start()
