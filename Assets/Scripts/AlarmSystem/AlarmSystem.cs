@@ -10,6 +10,7 @@ public class AlarmSystem : MonoBehaviour
     [SerializeField, Range(0, 1)] float _smoothness = 0.4f;
 
     private AudioSource _audioSource;
+    private Coroutine _volumeCoroutine;
 
     private void Awake()
     {
@@ -31,12 +32,6 @@ public class AlarmSystem : MonoBehaviour
         _trigger.CrookLeftHouse -= StartLeftCoroutine;
     }
 
-    private void Update()
-    {
-        if (_audioSource.volume == 0)
-            _audioSource.Stop();
-    }
-
     private void PlaySound()
     {
         _audioSource.Play();
@@ -44,22 +39,24 @@ public class AlarmSystem : MonoBehaviour
 
     private void StartEnterCoroutine()
     {
-        StopAllCoroutines();
+        if (_volumeCoroutine != null)
+            StopCoroutine(_volumeCoroutine);
 
         float offset = _volumeChangingSpeed;
         float finalVolume = 1;
 
-        StartCoroutine(ChangeVolumeCouroutine(offset, () => _audioSource.volume < finalVolume));
+        _volumeCoroutine = StartCoroutine(ChangeVolumeCouroutine(offset, () => _audioSource.volume < finalVolume));
     }
 
     private void StartLeftCoroutine()
     {
-        StopAllCoroutines();
+        if (_volumeCoroutine != null)
+            StopCoroutine(_volumeCoroutine);
 
         float offset = _volumeChangingSpeed * -1;
         float finalVolume = 0;
 
-        StartCoroutine(ChangeVolumeCouroutine(offset, () => _audioSource.volume > finalVolume));
+        _volumeCoroutine = StartCoroutine(ChangeVolumeCouroutine(offset, () => _audioSource.volume > finalVolume));
     }
 
     private IEnumerator ChangeVolumeCouroutine(float offset, Func<bool> condition)
@@ -71,5 +68,8 @@ public class AlarmSystem : MonoBehaviour
             _audioSource.volume += offset;
             yield return wait;
         }
+
+        if (_audioSource.volume == 0)
+            _audioSource.Stop();
     }
 }
